@@ -1,0 +1,543 @@
+/*
+    cara jalaninnya semua test, kita panggil 
+    vendor/bin/phpunit tests/CounterTest.php
+
+    cara jalanin test hanya 1 method
+    vendor/bin/phpunit --filter 'ClassTest::testMethod' tests/CounterTest.php
+*/
+
+/*
+    ASSERTIONS
+
+    Assertions adalah mengecek apakah sebuah kondisi sudah terpenuhi, jika kondisi tidak terpenuhi maka unit tesnya kita anggap gagal. Jadi ini adalah untuk menguji expetasi kita terhadap hasil kode program kita
+
+    Class Assert
+    utk menggunakan Assertions kita tidak perlu menggunakan if else karena sudah tersedia class nya di PHPUnit\Framework\Assert
+    class assert berisi static function yang banyak banget kita gunakan sesuai kebutuhan,
+    dan jika saat kondisi Assertions tidak terpenuhi maka akan dianggap unit test kita gagal
+
+    assertEquals() dia mengecek apakah expetasi kita sama dengan method yg kita test
+    jadi untuk cek kita tidak pake echo lagi karena nanti bakal ada ratusan/ribuan unit test dan itu akan ribet
+
+    //! echo $counter->getCounter(); tidak direkomendasikan
+
+    sebenarnya class TestCase ini adalah turunan dari class Assert jadi kita bisa gunakan disini secara tidak langsung kita bisa akses semua method static dari class Assert dengan $this atau self
+*/
+
+public function testCounter(): void
+{
+    $counter = new Counter();
+
+    $counter->increment();
+    Assert::assertEquals(1, $counter->getCounter());
+
+    $counter->increment();
+    $this->assertEquals(2, $counter->getCounter());
+
+
+    $counter->increment();
+    self::assertEquals(3, $counter->getCounter());
+}
+
+/*
+    ANNOTATION
+
+    secara default ketika kita buat method untuk unit test, kita awali test didepan nama methodnya,
+    contoh : testCounter, testOther etc.
+
+    PHPUnit mendukung annotation ia adalah metadata informasi tambahan yang dimasukkan kedalam source code, di PHP annotation dimasukkan dalam 
+    
+    BLOK KOMENTAR.
+
+    @test dia merupakan annotation yang digunakan utk menandakan bahwa function ini adalah unit test.
+    jadi kita tidak perlu membuat test diawal nama methodnya lagi.
+    Dan @test ini berlaku untuk 1 method
+    contoh :
+
+    /**
+     * @test
+     */
+
+    public function increment(): void
+    {
+        $counter = new Counter;
+        $counter->increment();
+        self::assertEquals(1, $counter->getCounter());
+    }
+
+    maka dia akan dijalankan sebagai unit test karena ada komentar 
+
+    /**
+     * @test
+     */
+
+*/
+
+/*
+    TEST DEPENDECY
+
+    ialah unit test yang tergantung atau melanjutkan hasil dari unit test sebelumnya,
+    di PHPUnit untuk membuat unit test yang tergantung dari unit test sebelumnya
+    , kita bisa gunakan annotation @depends testMethod
+
+    Tapi ini tidak direkomendasikan karena test yang terbaik tidak tergantung test lain (independent)
+    karena jika kita tergantung unit test lain, jika unit test awalnya error maka semuanya akan error
+*/
+
+/*
+    DATA PROVIDER
+
+    Dalam unit test biasanya kita mengkombinasi beberapa input
+    sebenarnya hal ini bisa manual satu persatu, tapi terlalu banyak hal yg ditulis
+    dan banyak duplicate code dan jika kita mau ganti skenario kita duplicate lagi
+    contoh :
+
+public function testManual()
+{
+    $math = new Math;
+    self::assertEquals(10, $math::sum([5, 5]));
+    self::assertEquals(100, $math::sum([50, 50]));
+    self::assertEquals(58, $math::sum([5, 53]));
+    self::assertEquals(20, $math::sum([15, 5]));
+    self::assertEquals(7, $math::sum([2, 5]));
+}
+
+    PHPUnit mendukung fitur data provider dan PHPUnit harus pake ini, dimana kita buat unit test dgn parameter, dan datanya diprovide dari function lain.
+    utk melakukan nya kita bisa dengna annotation @dataProvider providerMethod
+    contoh :
+
+public function mathSumData(): array
+{
+    /* 
+        return [
+            [params1, params2]
+        ]
+    */
+
+    return [
+        [[5, 5], 10],
+        [[50, 50], 100],
+        [[55, 5], 60],
+    ];
+}
+
+/**
+* @dataProvider mathSumData
+*/
+
+public function testDataProvider(array $values, int $expected)
+{
+    self::assertEquals($expected, Math::sum($values));
+}
+
+jadi keuntungannya, ini akan dianggap 3 unit test, karena kita definisikan method testDataProvider 3 kali, isi parameter 3 kali, nah jika ada yang error dari salah satu, unit test lain tidak akan berpengaruh karena dianggap beda unit test dan akan memberitahu unit test yang gagal keberapa, kalo kita pke manual itu dianggap 1 unit test jadi kalo ada error 1 maka semuanya akan error itu keuntungannya dari dataProvider.
+
+*/
+
+/*
+    @testWith
+
+    Saat membuat data provider kita harus membuat function yg mengembalikkan data, ada cara lain supaya kita tdk perlu membuat function dlu kita bisa gunakan annotation @testWith
+    jadi kita tidak perlu membuat function kita cukup masukkan pada doc di blok komentarnya saja
+    contoh :
+
+// @testWith [params1, params2]
+
+/**
+* @testWith [[5,5], 10]
+            [[10,5], 2]
+*/
+
+public function testWith(array $values, int $excepted)
+{
+    self::assertEquals($excepted, Math::sum($values));
+}
+
+
+testWith ini digunakan utk tipe data yang sederhana, jika objectt maka tidak bisa, untuk object kita bisa gunakan dataProvider
+
+*/
+
+/*
+    TEST EXCEPTION
+
+    jadi ketika kita buat unit test, kita juga harus menguji jika unit tesnya tidak sesuai expetasi kita.
+    kita akan cek jika unit test kita success dan jika unit test kita kondisinya tidak terpenuhi
+    kita bisa gunakan throw new Exception untuk ngirim errornya dan nanti diterima di unit testnya, Jika tidak menerima exception maka unit test kita dianggap gagal/error jadi dia harus nerima exception sehingga unit test kita benar.
+
+    dan untuk menerima Exception di unit test kita bisa gunakan $this->expectException(ExceptionClass::class)
+    contoh:
+
+
+    public function testException(): void
+    {
+        $person = new Person("Aris");
+        $this->expectException(Exception::class);
+        self::assertEquals("Hello Endang, my name is Aris",  $person->sayHello(null));
+    }
+
+    dia akan benar jika menjalankan kondisi yang tidak sesuai expetasi kita dan unit test kita akan  gagal kalo dia jalanin sesuai expetasi kita
+*/
+
+/*
+    TEST OUTPUT
+
+    kadang kita perlu menampilkan saja atau print di method kita tanpa return value, hanya OUTPUT berupa string, dan di php unit untuk mengeceknya kita gunakan 
+    Assert::expectOutputString(string $expectedString);
+    contoh:
+
+
+    public function testSayGoodBye(): void
+    {
+        $person = new Person("Aris");
+        $this->expectOutputString("Good Bye Endang"); // expetasi kita
+        $person->sayGoodBye("Endang");
+    }
+
+    hasilnya maka akan berhasil jika method yg dicek hanya echo string saja, tanpa return value
+*/
+
+/*
+    FIXTURE
+
+    cara mengatasi kita memanggil object yang akan test secara berulang ulang dan sama untuk masing masing method unit test kita.
+    kita bisa gunakan function setUp() dia ada di dalam class TestCase dan kita sudah extends ke class itu berarti kita bisa akses function itu, function setUp() dijalankan sebelum unit test dieksekusi, jadi kita bisa gunakan untuk membuat object yang akan kita selalu gunakan, nah visibility dari setUp() ialah protected artinya hanya parent dan childnya ajah yang bisa akses 
+    contoh:
+
+class PersonTest extends TestCase
+{
+    private Person $person;
+
+    protected function setUp(): void
+    {
+        $this->person = new Person("Aris");
+    }
+
+    /**
+     * @test
+     */
+    public function success(): void
+    {
+        self::assertEquals("Hello Endang, my name is Aris",  $this->person->sayHello("Endang"));
+    }
+}
+
+    Jika kita ingin membuat function dgn nama beda di FIXTURE kita bisa gunakan
+    @before
+
+    tapi FIXTURE dieksekusi permethod jadi kalo ada 10 method dia akan eksekusi 10 kali setUp nya
+*/
+
+/*
+    tearDown() dia akan dijalankan setelah setUp->function->tearDown() dan diulang berdasarkan function unit testnya
+    dia juga bisa pke annotation @after, setUp = @before.
+*/
+
+
+
+/*
+    INDEPENDENT UNIT TEST 
+
+    cara kerja UNIT test
+    - membuat object unit test
+    - menjalankan FIXTURE setUp
+    - menjalankan function
+    - menjalankan FIXTURE tearDown
+    - ulang lagi dari awal utk pembuatan function unit test selanjutnya
+
+
+    SHARING FIXTURE
+
+    Tiap unit test akan baru karena tiap function dijalankan dari awal INDEPENDENT,
+    nah kan INDEPENDENT kita akan kesulitan jika datanya ingin kita sharing antar unit test
+    misal koneksi DB, kita ingin hanya buat satu kali saja
+
+    untuk membuat itu kita bisa membuat variable static, dgn static kita tidak perlu lagi buat object dari awal dan panggil ulang koneksinya
+
+    jadi static ini lebih ke variable classnya bukan lagi tergantung objectnya
+
+    tetapi untuk SHARING FIXTURE kita tidak bisa mengakses variable static di dalam method setUp, karena nanti akan dibuat ulang objectnya dan buat objject baru tiap kita eksekusi unit tesnya, jadi si static ini sia sia gthu, dan variable static dia hanya bisa digunakan di function static
+    cara akses static supaya tidak tergantung objectnya adalah
+
+    - static function setUpBeforeClass utk diawal ketika unit tesnya dieksekusi atau gunakan @beforeClass
+    - static function tearDownAfterClass utk di akhri ketika unit-test->function ssudah dieksekusi atau     
+      gunakan @afterClass
+    visibility dari keduanya public
+
+    - SHARING FIXTURE ini dijalankan diawal dan diakhir walaupun di class banyak unit test yang dieksekusi
+
+*/
+
+/*
+    INCOMPLETE TEST
+
+    saat kita membuat unit test biasanya kita buat function kosong lalu isi function nya 
+    kadang unit test blm selesai
+    secara default jika unit test tidak ada masalah dia dianggap sukses, dan kadang kita lupa yang belum selesai tadi karena udah sukses,
+    Nah utk itu kita harus kasih tau PHPUNIT bahwa unit test ini blm selesai dgn method
+    Assert::markTestIncomplete()
+*/
+
+/*
+    SKIP TEST
+
+    saat kita membuat test dan error kita ingin mendisable unit test dlu biasanya kita hilangkan test diawal nama function atau annotation @test dihilangkan itu akan menyebabkan disable selamanya jika kita lupa, jadi ada cara supaya di laporan unit test ada bahwa method ini diskip
+    kita bisa gunakan 
+    Assert::markTestSkipped()
+*/
+
+/*
+    SKIP TEST berdasarkan KONDISI 
+
+    kita bisa gunakan @requires utk skip kondisi dan diikuti kondisinya, contoh versi php, os dll
+    contoh
+
+    /**
+    * @requires OSFAMILY Windows
+    */
+
+    public function testOnlyWindows():void
+    {
+        self::assertTrue(true, "Only in Windows");
+    }
+
+*/
+
+/*
+    Biasanya kita melakukan unit test tidak sesimple hanya 1 class seperti yang sudah kita lakukan,
+    pada kasus yang sebenarnya kita bisa saja ingin unit test class yang mempunyai DEPENDECY ke class lain gthu atau ketergantungan dari class lain. contohnya
+    class A dependecy ke class B dan class B butuh class C. nah ini akan sulit dilakukan unit testnya
+    Nah kita akan buat class yang kompleks dimana class class itu bergantung/dependecy dgn class lainnya
+
+    STUB
+
+    Saat buat unit test class yang akan kita gunakan dia butuh object dari class lain, 
+    nah untuk mengatasi masalah tersebut, kita berarti harus buat class dan class" lain yang dibutuhkan gthu.
+    maka kita bisa gunakan object penggantinya yg bisa dikonfigurasi sesuai keinginan kita.
+    teknik ini disebut stubbing dan class/object penggantinya/boongannya disebut stub.
+    PHPUnit mendukung pembuatan stub dengan 
+    function createStub(ClassName) ini ada di dalam class TestCase
+    nah function itu otomatis akan membuatkan kita object class atau interface dengan default implementation dari classnya.
+    Jadi dengan adanya function createStub(ClassName) kita tidak perlu implemensi sql nya juga direpositorynya kita bikin class boongannya.
+
+    nah si stub ini dia return valuenya mengikuti default method yg diclass gthu jadi kalo default int dia akan return int kalo return value class dia akan dumy atau buat class stub lagi dari Product
+
+    KONFIGURASI STUB
+
+    - secara default, semua function di STUB akan mengembalikkan null jika nullable return typenya,
+      atau default value jika tipe data int, string, array dll. dan stub lain jika tipe datanya class
+    - Biasanya kita akan KONFIGURASI stub dlu sebelum menggunakan stub.
+    - dgn itu kita bisa memprediksi tingkah laku stub dengan KONFIGURASI yang kita buat
+    - melakukan KONFIGURASI stub, sederhananya hanya memberitahu stub, jika sebuah function dieksekusi 
+      kita ingin mengembalikkan data apa.
+      contoh
+      kita findById(1) kita ingin balikkannya 1,
+      kita findById(2) kita ingin balikkannya null,
+
+    Di dalam stub ia memiliki function method(name), dimana dia akan mengembalikkan object InvocationStubber.
+    dengan InvocationStubber kita bisa mengatur hasil kembalian dari function yg dipanggil di stub;
+
+*/
+
+/*
+    MASALAH PADA STUB
+
+    sangat cocok menggunakan stub jika kita ingin mengetes class yang butuh object lain.
+    Namun masalahnya kita tidak tau berapa kali interaksi terjadi terhadap stub
+    coba implemensi delete product
+*/
+
+/*
+    KESALAHAN PADA UNIT TEST
+
+    - sekilas, unit test kita tidak ada masalah,
+    - tapi, jika kita ubah implemensi class service nya
+    - misal, kita panggil function delete lebih dari 1 kali.
+    - atau bahkan kita hapus kode delete dgn repository
+    - hasilnya, semua unit tesnya akan sukses, berarti ada kesalahan pada unit test kita.
+    contoh:
+
+    kita akan komentari, atau hapus method dari repository yaitu 
+        // $this->repository->delete($product);
+    dan unit test akan tetap berhasil (success)
+
+    atau kita lakukan delete dua kali, maka akan tetap sukses karena stub tidak tau berapa banyak interaksi terjadi terhadap stub
+    contoh
+        $this->repository->delete($product);
+        $this->repository->delete($product);
+    
+    si stub ini tidak bisa tau berapa banyak interaksi method yang ada di stubnya.
+    Utk mengatasi itu ada function MOCK OBJECT, 
+*/
+
+/*
+    MOCK OBJECT
+
+    mock object ini sama saja dengan stub, perilaku yang bisa dilakukan si stub bisa juga dilakukan mock object, tetapi si Mock Object ini bisa verifikasi berapa banyak sebuah method dipanggil,
+    utk membuat mock object kita gunakan function
+
+    createMock(ClassName::class) parameter berisi originalClass
+
+    dia terdapat pada classnya TestCase
+
+    /*  
+        createStub() akan membuatkan object dari class/interface ProductRepository
+        $this->repository = $this->createStub(ProductRepository::class);
+
+        jadi disini kita ubah ke  createMock karena kita butuh tau berapa kali interaksi yang terjadi di method yang ada di dalam mock objectnya
+    */
+
+        $this->repository = $this->createMock(ProductRepository::class);
+
+        Jadi si mock ini dia improvment dari stub, sehingga jika kita tidak butuh mengetahui berapa kali interaksi yang terjadi di method unit test kita bisa gunakan stub, dan sebaliknya kita gunakan mock
+
+        KONFIGURASI MOCK OBJECT
+
+        - mereka mempunyai function method(name), nah namun di MOCK OBJECT sebelum kita menggunakan function method(name), 
+          kita bisa menambhakan 
+          expects(invocationRule) = ekspetasi berapa kali function dipanggil
+
+          nah expects(invocationRule) ini parameternya object sudah ada didalam TestCase kita bisa gunakan function" di object 
+          InvocationRule yaitu any(), never(), once() etc.
+          contoh
+
+
+
+        public function testMock(): void
+        {
+            $product = new Product;
+            $product->setId("1");
+            $this->repository->expects($this->once())->method("findById")->willReturn($product);
+
+            $result = $this->repository->findById("1");
+
+            /*
+                Ini akan error karena kita gunakan expects(self::once())->method('findById')
+                dan findById harus dipanggil 1 kali di function unit testnya
+            */
+            $result = $this->repository->findById("2");
+
+
+            self::assertSame($product, $result);
+        }
+
+    Jadi ini bagus nya si mock expetasinya kita bisa tentukan berapa kali function yang akan dijalankan di unit testnya dan menerima berapa kali function yang dikirim
+
+    contoh jika 
+
+        $this->repository->delete($product);
+        $this->repository->delete($product);
+    
+
+    dikirim lebih dari 1 kali dan kita hanya ingin unit testnya 1 kali saja menerima function deletenya
+
+    public function testDeleteSuccess(): void
+    {
+        /* 
+            jadi kita hanya akan menerima function delete hanya 1 kali ajah, tidak boleh lebih dan kurang, ini akan error jika di service mengirim function delete yg ada di repository 2 kali, ini akna sukses jika pke stub
+            tidak butuh return karena function delete tidak return apapun 
+        */
+        $this->repository->expects(self::once())->method("delete");
+
+        $product = new Product;
+        $product->setId("1");
+        $this->repository->expects($this->once())->method("findById")->willReturn($product);
+
+        $this->service->delete("1");
+        self::assertTrue(true, "success delete");
+    }
+
+
+
+    public function testDeleteFailed(): void
+    {
+        /** jadi jika function delete yang di repository tidak pernah dipanggil dia akan throw error */
+        $this->repository->expects($this->never())->method("delete");
+
+        $this->expectException(Exception::class);
+        $this->repository->expects($this->once())->method("findById")->willReturn(null);
+
+        $this->service->delete("1");
+    }
+*/
+
+
+DISARANKAN JIKA INGIN IMPLEMENTASI UNIT TEST DI CLASS YANG KOMPLEKS DI REKOMENDASIKAN PAKE MOCK, KARENA BISA SAJA SUATU SAAT KITA BUTUH BERAPA KALI INTERAKSI TERHADAP OBJECT MOCKNYA
+
+/*
+    MOCK OBJECT memastikan parameter yang benar.
+
+    Jadi setelah kita tau berapa kali interaksi terhadap object mocknya, kita perlu mengecek apakah parameter yang sudah dikirim benar atau tidak, jika parameter yg dikirim salah maka akan sukses.
+    karena secara default mock tidak memverifikasinya, tetapi kita bisa melakukan verifikasi karena mock object mendukung verifikasi parameter, 
+    kita bisa menggunakan 
+
+    method(...constraint) pada mock object
+
+    Namun kita tidak perlu membuat manual karena sudah ada function di Assert Class
+    jadi jika kita tidak tentukan verifikasi parameter maka jika delete return null dia akan berhasil 
+    contoh
+
+        $this->repository->delete(null); === success 
+
+    kita akan verifikasi dengan mock object
+    Jadi verifikasi dilakukan setelah function method() dipanggil 
+    contoh
+
+$this->repository->expects($this->once())->method("findById")->with(self::equalTo($product->getId()))->willReturn($product);
+
+        jika verifikasi lebih dari satu kita bisa gunakan
+
+$this->repository->expects($this->once())->method("findById")->with(self::equalTo($product->getId(), self::greaterThan()))->willReturn($product);
+
+
+    contoh
+
+    public function testDeleteSuccess(): void
+    {
+
+        $product = new Product;
+        $product->setId("1");
+
+        // with(self::equalTo($Product))
+        $this->repository->expects(self::once())->method("delete")->with(self::equalTo($product)); 
+
+        $this->repository->expects($this->once())->method("findById")->with(self::equalTo($product->getId()))->willReturn($product);
+
+        $this->service->delete("1");
+        self::assertTrue(true, "success delete");
+    }
+
+
+
+
+
+
+    Mock Object tidak untuk abstract class dan trait,
+
+    function createMock() tidak untuk abstract class dan trait, tapi ada function sendiri utk keduanya dan cara menggunakannya sama saja
+
+    function getMockForTrait(trait) utk membuat mock object utk trait.
+    function getMockForAbstractClass(abstractClass) utk membuat mock object utk abstractClass.
+    
+*/
+
+/*
+    Configuration 
+
+    ini optional, jadi kita akan membuat file KONFIGURASI dan filenya adalah phpunit.xml dia bentuknya xml, kita bisa beri informasi apapun pada KONFIGURASI phpunit.
+
+    kita bisa cari perintah utk KONFIGURASI lainnya, dan setelah kita sudah buat file phpunit.xml kita bisa jalankan phpunit kita dengan lebih mudah
+    contoh
+
+    vendor/bin/phpunit --configuration phpunit.xml
+
+    maka dia akan running semua method yang ada difolder tests
+
+    atau kita bisa KONFIGURASI di composer scipts
+
+    "scripts":{
+        "test":"phpunit --configuration phpunit.xml"
+    }
+
+    dan akses diterminal composer test
+*/
